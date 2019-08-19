@@ -1,0 +1,33 @@
+package com.ascendmoney.equator.sdk.http.client;
+
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.MediaType;
+
+public interface HttpHeader {
+
+    String CORRELATION_ID = "correlation-id";
+    String EQUATOR_CLIENT_ID = "client_id";
+    String EQUATOR_CLIENT_SECRET = "client_secret";
+    String DEVICE_ID = "device_id";
+    String DEVICE_DESCRIPTION = "device_description";
+    String CHANNEL_ID = "channel_id";
+    String AUTHORIZATION = "Authorization";
+    String BEARER_HEADER_PREFIX = "Bearer ";
+    String CLIENT_ID = "client_id";
+    String CLIENT_SECRET = "client_secret";
+
+    final class SimpleHeader implements HttpHeader {
+
+        public static final HttpHeaders HEADER_ACCEPT_JSON;
+        public static final HttpHeaders HEADER_ACCEPT_CONTENT_TYPE_JSON;
+
+        static {
+            HEADER_ACCEPT_JSON = new HttpHeaders();
+            HEADER_ACCEPT_JSON.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_UTF8_VALUE);
+
+            HEADER_ACCEPT_CONTENT_TYPE_JSON = new HttpHeaders();
+            HEADER_ACCEPT_CONTENT_TYPE_JSON.set(HttpHeaders.ACCEPT, MediaType.APPLICATION_JSON_UTF8_VALUE);
+            HEADER_ACCEPT_CONTENT_TYPE_JSON.set(HttpHeaders.CONTENT_TYPE, MediaType.APPLICATION_JSON_UTF8_VALUE);
+        }
+    }
+}
