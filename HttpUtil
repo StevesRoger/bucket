@@ -1,0 +1,222 @@
+package com.ascendmoney.equator.sdk.http.client;
+
+import com.fasterxml.jackson.annotation.JsonInclude;
+import com.fasterxml.jackson.databind.DeserializationFeature;
+import com.fasterxml.jackson.databind.ObjectMapper;
+import org.apache.http.HeaderElement;
+import org.apache.http.HeaderElementIterator;
+import org.apache.http.client.HttpClient;
+import org.apache.http.config.Registry;
+import org.apache.http.config.RegistryBuilder;
+import org.apache.http.conn.ConnectionKeepAliveStrategy;
+import org.apache.http.conn.socket.ConnectionSocketFactory;
+import org.apache.http.conn.socket.PlainConnectionSocketFactory;
+import org.apache.http.conn.ssl.SSLConnectionSocketFactory;
+import org.apache.http.impl.client.HttpClients;
+import org.apache.http.impl.conn.PoolingHttpClientConnectionManager;
+import org.apache.http.message.BasicHeaderElementIterator;
+import org.apache.http.protocol.HTTP;
+import org.apache.http.ssl.SSLContexts;
+import org.jetbrains.annotations.NotNull;
+import org.springframework.core.ParameterizedTypeReference;
+import org.springframework.http.*;
+import org.springframework.http.client.BufferingClientHttpRequestFactory;
+import org.springframework.http.client.HttpComponentsClientHttpRequestFactory;
+import org.springframework.http.converter.FormHttpMessageConverter;
+import org.springframework.http.converter.HttpMessageConverter;
+import org.springframework.http.converter.json.MappingJackson2HttpMessageConverter;
+import org.springframework.util.MultiValueMap;
+import org.springframework.util.concurrent.ListenableFuture;
+import org.springframework.web.client.AsyncRestTemplate;
+import org.springframework.web.client.HttpStatusCodeException;
+import org.springframework.web.client.ResourceAccessException;
+import org.springframework.web.client.RestTemplate;
+
+import java.net.URI;
+import java.security.cert.X509Certificate;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
+
+public final class HttpUtils {
+
+    public static final int _20SECOND = 20000;
+
+    private static final RestTemplate DEFAULT_REST_TEMPLATE;
+    private static final HttpClient HTTP_CLIENT;
+    private static final List<HttpMessageConverter<?>> MESSAGE_CONVERTERS;
+
+    static {
+        ObjectMapper objectMapper = new ObjectMapper()
+                .configure(DeserializationFeature.FAIL_ON_UNKNOWN_PROPERTIES, false)
+                .configure(DeserializationFeature.FAIL_ON_IGNORED_PROPERTIES, false)
+                .setDefaultPropertyInclusion(JsonInclude.Include.NON_NULL);
+
+        PoolingHttpClientConnectionManager connectionManager = new PoolingHttpClientConnectionManager(socketFactoryRegistry());
+        connectionManager.setDefaultMaxPerRoute(5);
+        connectionManager.setMaxTotal(50);
+
+        HTTP_CLIENT = HttpClients.custom()
+                .setConnectionManager(connectionManager)
+                .setKeepAliveStrategy(connectionKeepAliveStrategy(_20SECOND)).build();
+
+        HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+        factory.setHttpClient(HTTP_CLIENT);
+
+        DEFAULT_REST_TEMPLATE = new RestTemplate(new BufferingClientHttpRequestFactory(factory));
+        MESSAGE_CONVERTERS = DEFAULT_REST_TEMPLATE.getMessageConverters();
+        MESSAGE_CONVERTERS.add(new MappingJackson2HttpMessageConverter(objectMapper));
+        MESSAGE_CONVERTERS.add(new FormHttpMessageConverter());
+    }
+
+    public static <T> T get(@NotNull String url, @NotNull Class<T> response) {
+        return get(url, -1, response);
+    }
+
+    public static <T> T get(@NotNull String url, HttpHeaders headers, @NotNull Class<T> response) {
+        return exchange(url, -1, HttpMethod.GET, new HttpEntity(null, headers), response, null, null).getBody();
+    }
+
+    public static <T> T get(@NotNull String url, int timeout, @NotNull Class<T> response) {
+        return get(url, timeout, response, new HashMap<>());
+    }
+
+    public static <T> T get(@NotNull String url, int timeout, @NotNull Class<T> response, Map<String, Object> urlVariables) {
+        return get(url, timeout, response, urlVariables, HttpHeader.SimpleHeader.HEADER_ACCEPT_JSON);
+    }
+
+    public static <T> T get(@NotNull String url, int timeout, @NotNull Class<T> response, Map<String, Object> urlVariables, HttpHeaders header) {
+        return exchange(url, timeout, HttpMethod.GET, new HttpEntity(null, header), response, null, urlVariables).getBody();
+    }
+
+    public static <T> T post(@NotNull String url, String body, @NotNull Class<T> response) {
+        return post(url, -1, body, response);
+    }
+
+    public static <T> T post(@NotNull String url, int timeout, String body, @NotNull Class<T> response) {
+        return post(url, timeout, new HttpEntity(body, HttpHeader.SimpleHeader.HEADER_ACCEPT_CONTENT_TYPE_JSON), response);
+    }
+
+    public static <T> T post(@NotNull String url, String body, HttpHeaders header, @NotNull Class<T> response) {
+        return post(url, -1, body, header, response);
+    }
+
+    public static <T> T post(@NotNull String url, MultiValueMap<String, Object> body, HttpHeaders header, @NotNull Class<T> response) {
+        return post(url, -1, new HttpEntity(body, header), response);
+    }
+
+    public static <T> T post(@NotNull String url, int timeout, MultiValueMap<String, Object> body, HttpHeaders header, @NotNull Class<T> response) {
+        return post(url, timeout, new HttpEntity(body, header), response);
+    }
+
+    public static <T> T post(@NotNull String url, int timeout, String body, HttpHeaders header, @NotNull Class<T> response) {
+        return post(url, timeout, new HttpEntity(body, header), response);
+    }
+
+    public static <T> T post(@NotNull String url, @NotNull HttpEntity entity, @NotNull Class<T> response) {
+        return post(url, -1, entity, response);
+    }
+
+    public static <T> T post(@NotNull String url, int timeout, @NotNull HttpEntity entity, @NotNull Class<T> response) {
+        return post(url, timeout, entity, response, null);
+    }
+
+    public static <T> T post(@NotNull String url, int timeout, @NotNull HttpEntity entity, @NotNull Class<T> response, Map<String, Object> urlVariables) {
+        return exchange(url, timeout, HttpMethod.POST, entity, response, null, urlVariables).getBody();
+    }
+
+    public static void asyncGet(@NotNull String url) {
+        asyncGet(url, String.class);
+    }
+
+    public static <T> ListenableFuture<ResponseEntity<T>> asyncGet(@NotNull String url, @NotNull Class<T> response) {
+        return new AsyncRestTemplate().getForEntity(URI.create(url), response);
+    }
+
+    public static void asyncPost(@NotNull String url, @NotNull HttpEntity body) {
+        asyncPost(url, body, String.class);
+    }
+
+    public static <T> ListenableFuture<ResponseEntity<T>> asyncPost(@NotNull String url, @NotNull HttpEntity body, @NotNull Class<T> response) {
+        return new AsyncRestTemplate().postForEntity(URI.create(url), body, response);
+    }
+
+    public static <T> ResponseEntity<T> exchange(@NotNull String url, int timeout, @NotNull HttpMethod method, @NotNull HttpEntity body, @NotNull Class<T> response) {
+        return exchange(url, timeout, method, body, response, null);
+    }
+
+    public static <T> ResponseEntity<T> exchange(@NotNull String url, int timeout, @NotNull HttpMethod method, @NotNull HttpEntity body, @NotNull Class<T> response, Map<String, Object> urlVariables) {
+        return exchange(url, timeout, method, body, response, null, urlVariables);
+    }
+
+    public static <T> ResponseEntity<T> exchange(@NotNull String url, int timeout, @NotNull HttpMethod method, @NotNull HttpEntity body, ParameterizedTypeReference<T> response) {
+        return exchange(url, timeout, method, body, response, null);
+    }
+
+    public static <T> ResponseEntity<T> exchange(@NotNull String url, int timeout, @NotNull HttpMethod method, @NotNull HttpEntity body, ParameterizedTypeReference<T> response, Map<String, Object> urlVariables) {
+        return exchange(url, timeout, method, body, null, response, urlVariables);
+    }
+
+    private static <T> ResponseEntity<T> exchange(@NotNull String url, int timeout, @NotNull HttpMethod method, @NotNull HttpEntity body, Class<T> clazz, ParameterizedTypeReference<T> reference, Map<String, Object> urlVariables) {
+        try {
+            return reference == null ?
+                    build(timeout).exchange(url, method, body, clazz, urlVariables == null ? new HashMap<>() : urlVariables) :
+                    build(timeout).exchange(url, method, body, reference, urlVariables == null ? new HashMap<>() : urlVariables);
+        } catch (ResourceAccessException ex) {
+            return new ResponseEntity<>(HttpStatus.EXPECTATION_FAILED);
+        } catch (HttpStatusCodeException ex) {
+            ex.printStackTrace();
+            if (String.class.equals(clazz))
+                return new ResponseEntity<>((T) ex.getResponseBodyAsString(), ex.getStatusCode());
+            else
+                return new ResponseEntity<>(ex.getStatusCode());
+        } catch (Exception ex) {
+            ex.printStackTrace();
+            return new ResponseEntity<>(HttpStatus.INTERNAL_SERVER_ERROR);
+        }
+    }
+
+    private static RestTemplate build(int timeout) {
+        if (timeout > -1) {
+            HttpComponentsClientHttpRequestFactory factory = new HttpComponentsClientHttpRequestFactory();
+            factory.setHttpClient(HTTP_CLIENT);
+            factory.setReadTimeout(timeout * 2);
+            factory.setConnectTimeout(timeout);
+            factory.setConnectionRequestTimeout(timeout);
+            RestTemplate restTemplate = new RestTemplate(new BufferingClientHttpRequestFactory(factory));
+            restTemplate.setMessageConverters(MESSAGE_CONVERTERS);
+            return restTemplate;
+        }
+        return DEFAULT_REST_TEMPLATE;
+    }
+
+    private static ConnectionKeepAliveStrategy connectionKeepAliveStrategy(int defaultKeepAliveTimeMillis) {
+        return (response, context) -> {
+            HeaderElementIterator it = new BasicHeaderElementIterator
+                    (response.headerIterator(HTTP.CONN_KEEP_ALIVE));
+            while (it.hasNext()) {
+                HeaderElement he = it.nextElement();
+                String param = he.getName();
+                String value = he.getValue();
+
+                if (value != null && param.equalsIgnoreCase("timeout")) {
+                    return Long.parseLong(value) * 1000;
+                }
+            }
+            return defaultKeepAliveTimeMillis;
+        };
+    }
+
+    private static Registry<ConnectionSocketFactory> socketFactoryRegistry() {
+        try {
+            return RegistryBuilder.<ConnectionSocketFactory>create()
+                    .register("http", PlainConnectionSocketFactory.getSocketFactory())
+                    .register("https", new SSLConnectionSocketFactory(SSLContexts.custom()
+                            .loadTrustMaterial(null, (X509Certificate[] chain, String authType) -> true).build()))
+                    .build();
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
+    }
+}
