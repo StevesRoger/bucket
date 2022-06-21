@@ -1,0 +1,83 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<configuration>
+
+    <!--<include resource="org/springframework/boot/logging/logback/base.xml"/>-->
+
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
+
+    <property name="LOG_DIR" value="D:/home/logs"/>
+
+    <property name="LOG_NAME" value="baphnum-auth"/>
+
+    <appender name="CONSOLE" class="ch.qos.logback.core.ConsoleAppender">
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <charset>utf-8</charset>
+            <layout class="com.jarvis.frmk.core.log.MaskingPatternLayout">
+                <maskPattern>\"password\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"pin\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"secret\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"pwd\"\s*:\s*\"(.*?)\"</maskPattern>
+                <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+            </layout>
+        </encoder>
+    </appender>
+
+    <appender name="FILE-ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
+        <file>${LOG_DIR}/${LOG_NAME}.log</file>
+
+        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+            <fileNamePattern>${LOG_DIR}/archived/${LOG_NAME}-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
+            <!-- each archived file, size max 10MB -->
+            <maxFileSize>10MB</maxFileSize>
+            <!-- total size of all archive files, if total size > 20GB,
+                it will delete old archived file -->
+            <totalSizeCap>20GB</totalSizeCap>
+            <!-- 60 days to keep -->
+            <maxHistory>60</maxHistory>
+        </rollingPolicy>
+
+        <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+            <charset>utf-8</charset>
+            <layout class="com.jarvis.frmk.core.log.MaskingPatternLayout">
+                <maskPattern>\"password\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"pin\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"secret\"\s*:\s*\"(.*?)\"</maskPattern>
+                <maskPattern>\"pwd\"\s*:\s*\"(.*?)\"</maskPattern>
+                <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID} [%t] %logger{36}: %msg%n</pattern>
+            </layout>
+        </encoder>
+
+    </appender>
+
+    <appender name="ASYNC-FILE" class="ch.qos.logback.classic.AsyncAppender">
+        <queueSize>512</queueSize>
+        <appender-ref ref="FILE-ROLLING"/>
+    </appender>
+
+    <logger name="com.jarvis" level="DEBUG" additivity="false">
+        <appender-ref ref="ASYNC-FILE"/>
+    </logger>
+
+    <logger name="com.jarvis" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!--<logger name="com.baphnum" level="DEBUG">
+        <appender-ref ref="ASYNC-FILE"/>
+    </logger>-->
+
+    <logger name="org.springframework.web" level="DEBUG" additivity="false">
+        <appender-ref ref="CONSOLE"/>
+    </logger>
+
+    <!--<logger name="org.springframework.web" level="DEBUG"/>-->
+    <!--<logger name="com.jarvis" level="DEBUG"/>-->
+
+    <root level="INFO">
+        <appender-ref ref="CONSOLE"/>
+        <appender-ref ref="ASYNC-FILE"/>
+    </root>
+
+    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+
+</configuration>
