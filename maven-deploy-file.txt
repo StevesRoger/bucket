@@ -1,0 +1,13 @@
+mvn deploy:deploy-file -DgroupId=<group-id> -DartifactId=<artifact-id> \
+  -Dversion=<version> \
+  -Dpackaging=<type-of-packaging> \
+  -Dfile=<path-to-file> \
+  -DrepositoryId=<id-to-map-on-server-section-of-settings.xml> \
+  -Durl=<url-of-the-repository-to-deploy>
+
+
+mvn deploy:deploy-file -DrepositoryId=eco-frmk-snapshot -DgroupId=com.wingmoney.frmk -DartifactId=eco-core -Dversion=1.0-SNAPSHOT -Dpackaging=jar -Dfile=./eco-core-1.0-SNAPSHOT.jar -Durl=https://registry.wingecosys.com:8443
+
+mvn deploy:deploy-file -DgroupId=com.wingmoney.frmk -DartifactId=eco-core -Dversion=1.0-SNAPSHOT -DgeneratePom=true -Dpackaging=jar -DrepositoryId=eco-frmk-snapshot -Durl=https://registry.wingecosys.com:8443/repository/eco-frmk-snapshot -Dfile=d:/eco-core-1.0-SNAPSHOT.jar
+
+mvn deploy:deploy-file -DgroupId=com.wingmoney.frmk -DartifactId=eco-core -Dversion=1.0-SNAPSHOT -DgeneratePom=false -Dpackaging=jar -DrepositoryId=eco-frmk-snapshot -Durl=https://registry.wingecosys.com:8443/repository/eco-frmk-snapshot -Dfile=d:/eco-core-1.0-SNAPSHOT-sources.jar
