@@ -1,0 +1,26 @@
+Direct Deploy
+You can do an HTTP PUT of a file into /content/repositories/<repo-id>/<path-of-file>.  Using curl you can do this with:
+
+curl -v -u admin:admin123 --upload-file pom.xml http://localhost:8081/nexus/content/repositories/releases/org/foo/1.0/foo-1.0.pom
+Maven "deploy-file" Deployment
+You can deploy files using the "deploy-file" goal on the Maven deploy plugin. 
+
+Example without a pom file:
+
+mvn deploy:deploy-file -DgroupId=com.somecompany -DartifactId=project -Dversion=1.0.0 -DgeneratePom=true -Dpackaging=jar -DrepositoryId=nexus -Durl=http://localhost:8081/nexus/content/repositories/releases -Dfile=target/project-1.0.0.jar
+With a pom file:
+
+mvn deploy:deploy-file -DgeneratePom=false -DrepositoryId=nexus -Durl=http://localhost:8081/nexus/content/repositories/releases -DpomFile=pom.xml -Dfile=target/project-1.0.0.jar
+This plugin goal also allows deployment of snapshot versions, and the plugin will take care of calculating the timestamped version needed:
+
+mvn deploy:deploy-file -DgroupId=com.somecompany -DartifactId=project -Dversion=1.0.0-SNAPSHOT -DgeneratePom=true -Dpackaging=jar -DrepositoryId=nexus -Durl=http://localhost:8081/nexus/content/repositories/snapshots -Dfile=target/project-1.0.0-SNAPSHOT.jar
+Note: The "repositoryId" parameter is not a Nexus repository ID, it is the ID of a server section in your settings.xml file which has then credentials needed for deployment.
+
+<servers>
+...
+  <server>
+      <id>nexus</id>
+      <username>deployment</username>
+      <password>deployment123</password>
+    </server>
+  </servers>
