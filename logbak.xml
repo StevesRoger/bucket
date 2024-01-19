@@ -1,42 +1,124 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <configuration>
 
-    <include resource="org/springframework/boot/logging/logback/base.xml"/>
+    <include resource="org/springframework/boot/logging/logback/defaults.xml"/>
 
-    <property name="HOME_LOG" value="D:/home/logs"/>
+    <springProperty scope="context" name="appName" source="spring.application.name"/>
 
-    <appender name="FILE_ROLLING" class="ch.qos.logback.core.rolling.RollingFileAppender">
-        <file>${HOME_LOG}/cmcb-core-app.log</file>
+    <springProperty scope="context" name="profile" source="spring.profiles.active"/>
 
-        <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
-            <fileNamePattern>${HOME_LOG}/archived/cmcb-core-app-%d{yyyy-MM-dd}.%i.log</fileNamePattern>
-            <!-- each archived file, size max 10MB -->
-            <maxFileSize>10MB</maxFileSize>
-            <!-- total size of all archive files, if total size > 20GB,
-				it will delete old archived file -->
-            <totalSizeCap>20GB</totalSizeCap>
-            <!-- 60 days to keep -->
-            <maxHistory>60</maxHistory>
-        </rollingPolicy>
+    <property name="LOG_DIR" value="${LOG_DIR:-/opt/logs}"/>
 
-        <encoder>
-            <charset>utf-8</charset>
-            <pattern>%d{yyyy-MM-dd HH:mm:ss.SSS} %-5level ${PID} - [%thread] %logger{39}: %msg%n</pattern>
-        </encoder>
+    <property name="LOG_NAME" value="${LOG_NAME:-${appName}}"/>
+
+    <property name="PROFILE" value="${PROFILE:-${profile}}"/>
+
+    <!-- Appender to console -->
+    <appender name="console" class="ch.qos.logback.core.ConsoleAppender">
+        <!-- Enable masking log console -->
+        <if condition='"true".equals("${ENABLE_MASKING_LOG:-false}")'>
+            <then>
+                <encoder class="ch.qos.logback.core.encoder.LayoutWrappingEncoder">
+                    <charset>utf-8</charset>
+                    <layout class="com.wingmoney.core.log.MaskingPatternLayout">
+                        <!--<maskPattern>\"password\"\s*:\s*\"(.*?)\"</maskPattern>--> <!-- password JSON pattern -->
+                        <!--<maskPattern>phone-number\s*\s*\[(.*?)\]</maskPattern>--> <!-- phone-number header pattern -->
+                        <!--<maskPattern>wing-accounts\s*\s*\[(.*?)\]</maskPattern>--> <!-- wing-accounts header pattern -->
+                        <!--<maskPattern>\"address\"\s*:\s*\"(.*?)\"</maskPattern>--> <!-- Address JSON pattern -->
+                        <!--<maskPattern>(\d+\.\d+\.\d+\.\d+)</maskPattern> --><!-- Ip address IPv4 pattern -->
+                        <!--<maskPattern>(\w+@\w+\.\w+)</maskPattern>--> <!-- Email pattern -->
+                        <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                    </layout>
+                </encoder>
+            </then>
+            <else>
+                <encoder>
+                    <charset>utf-8</charset>
+                    <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                </encoder>
+            </else>
+        </if>
     </appender>
 
-    <appender name="ASYNC_FILE" class="ch.qos.logback.classic.AsyncAppender">
-        <queueSize>512</queueSize>
-        <appender-ref ref="FILE_ROLLING"/>
-    </appender>
+    <springProfile name="${PROFILE:-docker}">
+        <if condition='"true".equals("${ENABLE_LOG_FILE:-false}")'>
+            <then>
+                <!-- Use shutdownHook so that we can close gracefully and finish the log drain -->
+                <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
+                <!-- Appender to log file -->
+                <appender name="log-file" class="ch.qos.logback.core.rolling.RollingFileAppender">
+                    <file>${LOG_DIR}/${LOG_NAME}.log</file>
+                    <rollingPolicy class="ch.qos.logback.core.rolling.SizeAndTimeBasedRollingPolicy">
+                        <fileNamePattern>
+                            ${LOG_DIR}/archived/${LOG_NAME}-%d{yyyy-MM-dd}.%i.log
+                        </fileNamePattern>
+                        <!-- each archived file, size max 10MB -->
+                        <maxFileSize>5MB</maxFileSize>
+                        <!-- total size of all archive files, if total size > 20GB,
+                            it will delete old archived file -->
+                        <totalSizeCap>20GB</totalSizeCap>
+                        <!-- 60 days to keep -->
+                        <maxHistory>60</maxHistory>
+                    </rollingPolicy>
+                    <encoder>
+                        <charset>utf-8</charset>
+                        <pattern>${CONSOLE_LOG_PATTERN}</pattern>
+                    </encoder>
+                </appender>
 
-    <root level="${logging.level.root}">
-        <appender-ref ref="ASYNC_FILE"/>
+                <appender name="async-log-file" class="ch.qos.logback.classic.AsyncAppender">
+                    <queueSize>512</queueSize>
+                    <appender-ref ref="log-file"/>
+                </appender>
+
+                <logger name="org.springframework.security.oauth2.provider.token.store" level="WARN" additivity="false">
+                    <appender-ref ref="async-log-file"/>
+                </logger>
+
+                <root level="DEBUG">
+                    <appender-ref ref="async-log-file"/>
+                </root>
+
+            </then>
+        </if>
+        <if condition='"true".equals("${ENABLE_LOG_STASH:-false}")'>
+            <then>
+                <!-- Appender to log stash -->
+                <appender name="log-stash" class="net.logstash.logback.appender.LogstashTcpSocketAppender">
+                    <param name="Encoding" value="UTF-8"/>
+                    <destination>${LOG_STASH_HOST}</destination>
+                    <encoder class="net.logstash.logback.encoder.LogstashEncoder">
+                        <customFields>
+                            {"pid":"${PID}","namespace":"${NAME_SPACE:-dev}","indexNameSpace":"${INDEX_NAMESPACE:-true}"}
+                        </customFields>
+                        <shortenedLoggerNameLength>36</shortenedLoggerNameLength>
+                        <timeZone>Asia/Bangkok</timeZone>
+                        <!-- Enable masking log when ship to log stash-->
+                        <if condition='"true".equals("${ENABLE_MASKING_LOG:-false}")'>
+                            <then>
+                                <jsonGeneratorDecorator class="com.wingmoney.core.log.LogStashMaskingJsonGeneratorDecorator">
+                                    <!--<maskPattern>\"password\"\s*:\s*\"(.*?)\"</maskPattern>--> <!-- password JSON pattern -->
+                                    <!--<maskPattern>phone-number\s*\s*\[(.*?)\]</maskPattern>--> <!-- phone-number header pattern -->
+                                    <!--<maskPattern>wing-accounts\s*\s*\[(.*?)\]</maskPattern>--> <!-- wing-accounts header pattern -->
+                                    <!--<maskPattern>\"address\"\s*:\s*\"(.*?)\"</maskPattern>--> <!-- Address JSON pattern -->
+                                    <!--<maskPattern>(\d+\.\d+\.\d+\.\d+)</maskPattern> --><!-- Ip address IPv4 pattern -->
+                                    <!--<maskPattern>(\w+@\w+\.\w+)</maskPattern>--> <!-- Email pattern -->
+                                </jsonGeneratorDecorator>
+                            </then>
+                        </if>
+                    </encoder>
+                </appender>
+
+                <root level="DEBUG">
+                    <appender-ref ref="log-stash"/>
+                </root>
+
+            </then>
+        </if>
+    </springProfile>
+
+    <root level="INFO">
+        <appender-ref ref="console"/>
     </root>
-
-    <shutdownHook class="ch.qos.logback.core.hook.DelayingShutdownHook"/>
-
-    <!--<logger name="org.springframework.web" level="DEBUG"/>-->
-    <!--<logger name="com.chipmong.bank.app" level="debug"/>-->
 
 </configuration>
