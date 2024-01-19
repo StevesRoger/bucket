@@ -1,4 +1,3 @@
-package com.wingmoney.core.log;
 
 import ch.qos.logback.core.rolling.RollingFileAppender;
 import ch.qos.logback.core.rolling.RollingPolicy;
