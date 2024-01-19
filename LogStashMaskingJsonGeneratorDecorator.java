@@ -1,8 +1,5 @@
-package com.wingmoney.core.log;
 
 import com.fasterxml.jackson.core.JsonGenerator;
-import com.wingmoney.core.ICore;
-import com.wingmoney.core.util.PropertyUtil;
 import net.logstash.logback.decorate.JsonGeneratorDecorator;
 import net.logstash.logback.mask.MaskingJsonGenerator;
 import net.logstash.logback.mask.MaskingJsonGeneratorDecorator;
