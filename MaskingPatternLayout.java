@@ -1,8 +1,7 @@
-package com.wingmoney.core.log;
+
 
 import ch.qos.logback.classic.PatternLayout;
 import ch.qos.logback.classic.spi.ILoggingEvent;
-import com.wingmoney.core.ICore;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -12,9 +11,19 @@ import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
 public class MaskingPatternLayout extends PatternLayout {
-
+     List<String> DEFAULT_MASKING_LOG_REGX = Arrays.asList(
+            "\\\"password\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"access_token\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"refresh_token\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"pin\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"secret\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"pwd\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "\\\"client_secret\\\"\\s*:\\s*\\\"(.*?)\\\"",
+            "authorization\\s*\\s*\\[(.*?)\\]",
+            "client-secret\\s*\\s*\\[(.*?)\\]");
+    
     private Pattern multilinePattern;
-    private List<String> maskPatterns = new ArrayList<>(ICore.DEFAULT_MASKING_LOG_REGX);
+    private List<String> maskPatterns = new ArrayList<>(DEFAULT_MASKING_LOG_REGX);
 
     public MaskingPatternLayout() {
         multilinePattern = Pattern.compile(maskPatterns.stream().collect(Collectors.joining("|")), Pattern.MULTILINE);
