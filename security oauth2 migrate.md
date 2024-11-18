@@ -245,13 +245,4 @@ DROP TABLE oauth_access_token;
 DROP TABLE oauth_client_token;
 DROP TABLE oauth_client_details;
 ```
-
-### Dropped MySQL Support
-
-Since version `1.5.0`, MySQL database is not supported anymore.
-
-
-## Dependencies
-
-PostgreSQL JDBC driver is already included in the WAR file.
-Oracle JDBC driver remains optional and must be added to your deployment if desired.
+- The original link [Spring Security OAuth2 Migrate](https://developers.wultra.com/components/powerauth-webflow/develop/documentation/Web-Flow-1.5.0.html).
