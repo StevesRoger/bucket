@@ -1,0 +1,77 @@
+<!DOCTYPE html>
+<html lang="en" xmlns:th="http://www.thymeleaf.org">
+<head>
+    <title>PayWay Checkout Sample</title>
+    <meta charset="utf-8"/>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=0"/>
+    <meta name="author" content="PayWay"/>
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/2.2.4/jquery.min.js"></script>
+</head>
+<body>
+
+<!-- Popup Checkout Form -->
+<div id="aba_main_modal" class="aba-modal">
+    <!-- Modal content -->
+    <div class="aba-modal-content">
+        <form method="POST" target="aba_webservice" id="aba_merchant_request" th:attr="action=${paywayApiUrl}">
+            <input type="hidden" name="hash" th:value="${hash}" id="hash"/>
+            <input type="hidden" name="tran_id" th:value="${tran_id}" id="tran_id"/>
+            <input type="hidden" name="amount" th:value="${amount}" id="amount"/>
+            <input type="hidden" name="firstname" th:value="${firstname}"/>
+            <input type="hidden" name="lastname" th:value="${lastname}"/>
+            <input type="hidden" name="phone" th:value="${phone}"/>
+            <input type="hidden" name="email" th:value="${email}"/>
+            <input type="hidden" name="req_time" th:value="${req_time}"/>
+            <input type="hidden" name="merchant_id" th:value="${merchant_id}"/>
+            <input type="hidden" name="continue_success_url" th:value="${continue_success_url}"/>
+            <input type="hidden" name="payment_gate" th:value="${payment_gate}"/>
+            <!--<input type="hidden" name="cancel_url" th:value="${cancel_url}"/>
+            <input type="hidden" name="return_url" th:value="${return_url}"/>
+            <input type="hidden" name="payment_gate" th:value="${payment_gate}"/>
+            <input type="hidden" name="currency" th:value="${currency}"/>
+            <input type="hidden" name="view_type" th:value="${view_type}"/>
+            <input type="hidden" name="type" th:value="${type}"/>
+            <input type="hidden" name="payment_option" th:value="${payment_option}"/>
+            <input type="hidden" name="items" th:value="${items}"/>-->
+        </form>
+    </div>
+    <!-- end Modal content -->
+</div>
+<!-- End Popup Checkout Form -->
+
+<!-- Page Content -->
+<div class="container" style="margin-top: 75px;margin: 0 auto;">
+    <div style="width: 200px;margin: 0 auto;">
+        <div class="wpr_payment_option">
+
+            <div style="margin-top: 10px">
+                <input type="radio" name="payment_option" class="payment_option" style="margin: 34px 10px;float: left;"
+                       checked value="abapay_khqr" th:value="${defaultPaymentOption}">
+                <label class="paymentOption" for="khqr">
+                    <img class="cardType" src="image/aba_khqr_logo.png">
+                    <span class="detailCard002" style="margin: 22px 10px; float: right; position: absolute;">
+                    <strong><span class="titleCard">ABA KHQR</span><br/></strong>
+                    <span class="detailCard003" style="margin-top: 5px;">Scan to pay with any banking app</span>
+                </span>
+                </label>
+            </div>
+        </div>
+
+        <h2 th:text="'TOTAL: $' + ${amount}"></h2>
+        <input type="button" id="checkout_button" value="Checkout Now">
+    </div>
+</div>
+<!-- End Page Content -->
+
+<script src="https://checkout.payway.com.kh/plugins/checkout2-0.js"></script>
+
+<script>
+    $(document).ready(function () {
+        $('#checkout_button').click(function () {
+            $('#aba_merchant_request').append($(".payment_option:checked"));
+            AbaPayway.checkout();
+        });
+    });
+</script>
+</body>
+</html>
